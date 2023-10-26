@@ -223,11 +223,12 @@ final class PluginDelegate: PluginInvocationDelegate {
                         // Configure a test runner.
                         let testRunner = TestRunner(
                             bundlePaths: [testProduct.bundlePath],
-                            xctestArg: testSpecifier,
+                            additionalArguments: [testSpecifier],
                             cancellator: swiftTool.cancellator,
                             toolchain: toolchain,
                             testEnv: testEnvironment,
-                            observabilityScope: swiftTool.observabilityScope)
+                            observabilityScope: swiftTool.observabilityScope,
+                            library: .xctest) // FIXME: support both libraries
 
                         // Run the test — for now we run the sequentially so we can capture accurate timing results.
                         let startTime = DispatchTime.now()

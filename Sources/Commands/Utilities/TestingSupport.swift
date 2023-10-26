@@ -113,7 +113,8 @@ enum TestingSupport {
                 buildParameters: swiftTool.buildParametersForTest(
                     enableCodeCoverage: enableCodeCoverage,
                     shouldSkipBuilding: shouldSkipBuilding,
-                    experimentalTestOutput: experimentalTestOutput
+                    experimentalTestOutput: experimentalTestOutput,
+                    library: .xctest
                 ),
                 sanitizers: sanitizers
             )
@@ -206,9 +207,15 @@ extension SwiftTool {
         enableCodeCoverage: Bool,
         enableTestability: Bool? = nil,
         shouldSkipBuilding: Bool = false,
-        experimentalTestOutput: Bool = false
+        experimentalTestOutput: Bool = false,
+        library: BuildParameters.Testing.Library
     ) throws -> BuildParameters {
         var parameters = try self.buildParameters()
+        parameters.testingParameters = .init(
+            configuration: parameters.configuration,
+            targetTriple: parameters.targetTriple,
+            library: library
+        )
         parameters.testingParameters.enableCodeCoverage = enableCodeCoverage
         // for test commands, we normally enable building with testability
         // but we let users override this with a flag
