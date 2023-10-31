@@ -906,7 +906,7 @@ final class ParallelTestRunner {
                 while let test = self.pendingTests.dequeue() {
                     let testRunner = TestRunner(
                         bundlePaths: [test.productPath],
-                        additionalArguments: [test.specifier],
+                        additionalArguments: ["-XCTest", test.specifier],
                         cancellator: self.cancellator,
                         toolchain: self.toolchain,
                         testEnv: testEnv,

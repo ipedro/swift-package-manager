@@ -128,7 +128,8 @@ enum TestingSupport {
             toolchain: try swiftTool.getTargetToolchain(),
             buildParameters: swiftTool.buildParametersForTest(
                 enableCodeCoverage: enableCodeCoverage,
-                shouldSkipBuilding: shouldSkipBuilding
+                shouldSkipBuilding: shouldSkipBuilding,
+                library: .xctest
             ),
             sanitizers: sanitizers
         )
