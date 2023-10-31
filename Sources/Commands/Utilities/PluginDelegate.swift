@@ -223,7 +223,7 @@ final class PluginDelegate: PluginInvocationDelegate {
                         // Configure a test runner.
                         let testRunner = TestRunner(
                             bundlePaths: [testProduct.bundlePath],
-                            additionalArguments: [testSpecifier],
+                            additionalArguments: ["-XCTest", testSpecifier],
                             cancellator: swiftTool.cancellator,
                             toolchain: toolchain,
                             testEnv: testEnvironment,
