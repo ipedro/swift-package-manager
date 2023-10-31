@@ -111,72 +111,72 @@ final class TestDiscoveryCommand: CustomLLBuildCommand, TestBuildCommand {
     private func execute(fileSystem: Basics.FileSystem, tool: TestDiscoveryTool) throws {
         let outputs = tool.outputs.compactMap { try? AbsolutePath(validating: $0.name) }
 
-        if self.context.buildParameters.testingParameters.library == .swiftTesting {
+        switch self.context.buildParameters.testingParameters.library {
+        case .swiftTesting:
             for file in outputs {
                 try fileSystem.writeFileContents(file, string: "")
             }
-            return
-        }
+        case .xctest:
+            let index = self.context.buildParameters.indexStore
+            let api = try self.context.indexStoreAPI.get()
+            let store = try IndexStore.open(store: TSCAbsolutePath(index), api: api)
 
-        let index = self.context.buildParameters.indexStore
-        let api = try self.context.indexStoreAPI.get()
-        let store = try IndexStore.open(store: TSCAbsolutePath(index), api: api)
+            // FIXME: We can speed this up by having one llbuild command per object file.
+            let tests = try store.listTests(in: tool.inputs.map { try TSCAbsolutePath(AbsolutePath(validating: $0.name)) })
 
-        // FIXME: We can speed this up by having one llbuild command per object file.
-        let tests = try store.listTests(in: tool.inputs.map { try TSCAbsolutePath(AbsolutePath(validating: $0.name)) })
+            let testsByModule = Dictionary(grouping: tests, by: { $0.module.spm_mangledToC99ExtendedIdentifier() })
 
-        let testsByModule = Dictionary(grouping: tests, by: { $0.module.spm_mangledToC99ExtendedIdentifier() })
-
-        // Find the main file path.
-        guard let mainFile = outputs.first(where: { path in
-            path.basename == TestDiscoveryTool.mainFileName
-        }) else {
-            throw InternalError("main output (\(TestDiscoveryTool.mainFileName)) not found")
-        }
-
-        // Write one file for each test module.
-        //
-        // We could write everything in one file but that can easily run into type conflicts due
-        // in complex packages with large number of test targets.
-        for file in outputs where file != mainFile {
-            // FIXME: This is relying on implementation detail of the output but passing the
-            // the context all the way through is not worth it right now.
-            let module = file.basenameWithoutExt.spm_mangledToC99ExtendedIdentifier()
-
-            guard let tests = testsByModule[module] else {
-                // This module has no tests so just write an empty file for it.
-                try fileSystem.writeFileContents(file, bytes: "")
-                continue
+            // Find the main file path.
+            guard let mainFile = outputs.first(where: { path in
+                path.basename == TestDiscoveryTool.mainFileName
+            }) else {
+                throw InternalError("main output (\(TestDiscoveryTool.mainFileName)) not found")
             }
-            try write(
-                tests: tests,
-                forModule: module,
-                fileSystem: fileSystem,
-                path: file
+
+            // Write one file for each test module.
+            //
+            // We could write everything in one file but that can easily run into type conflicts due
+            // in complex packages with large number of test targets.
+            for file in outputs where file != mainFile {
+                // FIXME: This is relying on implementation detail of the output but passing the
+                // the context all the way through is not worth it right now.
+                let module = file.basenameWithoutExt.spm_mangledToC99ExtendedIdentifier()
+
+                guard let tests = testsByModule[module] else {
+                    // This module has no tests so just write an empty file for it.
+                    try fileSystem.writeFileContents(file, bytes: "")
+                    continue
+                }
+                try write(
+                    tests: tests,
+                    forModule: module,
+                    fileSystem: fileSystem,
+                    path: file
+                )
+            }
+
+            let testsKeyword = tests.isEmpty ? "let" : "var"
+
+            // Write the main file.
+            let stream = try LocalFileOutputByteStream(mainFile)
+
+            stream.send(
+                #"""
+                import XCTest
+
+                @available(*, deprecated, message: "Not actually deprecated. Marked as deprecated to allow inclusion of deprecated tests (which test deprecated functionality) without warnings")
+                public func __allDiscoveredTests() -> [XCTestCaseEntry] {
+                    \#(testsKeyword) tests = [XCTestCaseEntry]()
+
+                    \#(testsByModule.keys.map { "tests += __\($0)__allTests()" }.joined(separator: "\n    "))
+
+                    return tests
+                }
+                """#
             )
+
+            stream.flush()
         }
-
-        let testsKeyword = tests.isEmpty ? "let" : "var"
-
-        // Write the main file.
-        let stream = try LocalFileOutputByteStream(mainFile)
-
-        stream.send(
-            #"""
-            import XCTest
-
-            @available(*, deprecated, message: "Not actually deprecated. Marked as deprecated to allow inclusion of deprecated tests (which test deprecated functionality) without warnings")
-            public func __allDiscoveredTests() -> [XCTestCaseEntry] {
-                \#(testsKeyword) tests = [XCTestCaseEntry]()
-
-                \#(testsByModule.keys.map { "tests += __\($0)__allTests()" }.joined(separator: "\n    "))
-
-                return tests
-            }
-            """#
-        )
-
-        stream.flush()
     }
 
     override func execute(
@@ -214,7 +214,8 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
         // Write the main file.
         let stream = try LocalFileOutputByteStream(mainFile)
 
-        if self.context.buildParameters.testingParameters.library == .swiftTesting {
+        switch self.context.buildParameters.testingParameters.library {
+        case .swiftTesting:
             stream.send(
                 #"""
                 #if canImport(Testing)
@@ -227,7 +228,7 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
                 #endif
                 """#
             )
-        } else {
+        case .xctest:
             // Find the inputs, which are the names of the test discovery module(s)
             let inputs = tool.inputs.compactMap { try? AbsolutePath(validating: $0.name) }
             let discoveryModuleNames = inputs.map(\.basenameWithoutExt)
