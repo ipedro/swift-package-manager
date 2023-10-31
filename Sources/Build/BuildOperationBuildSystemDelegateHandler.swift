@@ -114,7 +114,7 @@ final class TestDiscoveryCommand: CustomLLBuildCommand, TestBuildCommand {
         switch self.context.buildParameters.testingParameters.library {
         case .swiftTesting:
             for file in outputs {
-                try fileSystem.writeFileContents(file, string: "")
+                try fileSystem.writeIfChanged(path: file, string: "")
             }
         case .xctest:
             let index = self.context.buildParameters.indexStore
