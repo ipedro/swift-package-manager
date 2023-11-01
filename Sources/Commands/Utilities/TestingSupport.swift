@@ -212,11 +212,24 @@ extension SwiftTool {
         library: BuildParameters.Testing.Library
     ) throws -> BuildParameters {
         var parameters = try self.buildParameters()
+
+        var explicitlyEnabledDiscovery = false
+        var explicitlySpecifiedPath: AbsolutePath?
+        if case let .entryPointExecutable(
+            explicitlyEnabledDiscoveryValue,
+            explicitlySpecifiedPathValue
+        ) = parameters.testingParameters.testProductStyle {
+            explicitlyEnabledDiscovery = explicitlyEnabledDiscoveryValue
+            explicitlySpecifiedPath = explicitlySpecifiedPathValue
+        }
         parameters.testingParameters = .init(
             configuration: parameters.configuration,
             targetTriple: parameters.targetTriple,
+            forceTestDiscovery: explicitlyEnabledDiscovery,
+            testEntryPointPath: explicitlySpecifiedPath,
             library: library
         )
+
         parameters.testingParameters.enableCodeCoverage = enableCodeCoverage
         // for test commands, we normally enable building with testability
         // but we let users override this with a flag
