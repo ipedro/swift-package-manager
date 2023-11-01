@@ -932,9 +932,14 @@ final class ParallelTestRunner {
             let thread = Thread {
                 // Dequeue a specifier and run it till we encounter nil.
                 while let test = self.pendingTests.dequeue() {
+#if os(macOS)
+                    let additionalArguments = ["-XCTest", test.specifier]
+#else
+                    let additionalArguments = [test.specifier]
+#endif
                     let testRunner = TestRunner(
                         bundlePaths: [test.productPath],
-                        additionalArguments: ["-XCTest", test.specifier],
+                        additionalArguments: additionalArguments,
                         cancellator: self.cancellator,
                         toolchain: self.toolchain,
                         testEnv: testEnv,
