@@ -221,9 +221,14 @@ final class PluginDelegate: PluginInvocationDelegate {
                         }
 
                         // Configure a test runner.
+#if os(macOS)
+                        let additionalArguments = ["-XCTest", testSpecifier]
+#else
+                        let additionalArguments = [testSpecifier]
+#endif
                         let testRunner = TestRunner(
                             bundlePaths: [testProduct.bundlePath],
-                            additionalArguments: ["-XCTest", testSpecifier],
+                            additionalArguments: additionalArguments,
                             cancellator: swiftTool.cancellator,
                             toolchain: toolchain,
                             testEnv: testEnvironment,
