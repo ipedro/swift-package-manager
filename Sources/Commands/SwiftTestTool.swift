@@ -615,7 +615,8 @@ extension SwiftTestTool {
         // MARK: - XCTest
 
         private func xctestRun(_ swiftTool: SwiftTool) throws {
-            let testProducts = try buildTestsIfNeeded(swiftTool: swiftTool, library: .xctest)
+            let buildParameters = try swiftTool.buildParametersForTest(enableCodeCoverage: false, shouldSkipBuilding: sharedOptions.shouldSkipBuilding, library: .xctest)
+            let testProducts = try buildTestsIfNeeded(swiftTool: swiftTool, buildParameters: buildParameters)
             let testSuites = try TestingSupport.getTestSuites(
                 in: testProducts,
                 swiftTool: swiftTool,
@@ -634,7 +635,35 @@ extension SwiftTestTool {
         // MARK: - swift-testing
 
         private func swiftTestingRun(_ swiftTool: SwiftTool) throws {
-            throw StringError("swift test list is not yet implemented for swift-testing")
+            let buildParameters = try swiftTool.buildParametersForTest(enableCodeCoverage: false, shouldSkipBuilding: sharedOptions.shouldSkipBuilding, library: .swiftTesting)
+            let testProducts = try buildTestsIfNeeded(swiftTool: swiftTool, buildParameters: buildParameters)
+
+            let toolchain = try swiftTool.getTargetToolchain()
+            let testEnv = try TestingSupport.constructTestEnvironment(
+                toolchain: toolchain,
+                buildParameters: buildParameters,
+                sanitizers: globalOptions.build.sanitizers
+            )
+
+            let runner = TestRunner(
+                bundlePaths: testProducts.map(\.binaryPath),
+                additionalArguments: ["--list-tests"],
+                cancellator: swiftTool.cancellator,
+                toolchain: toolchain,
+                testEnv: testEnv,
+                observabilityScope: swiftTool.observabilityScope,
+                library: .swiftTesting
+            )
+
+            // Finally, run the tests.
+            let ranSuccessfully = runner.test(outputHandler: {
+                // command's result output goes on stdout
+                // ie "swift test" should output to stdout
+                print($0)
+            })
+            if !ranSuccessfully {
+                swiftTool.executionStatus = .failure
+            }
         }
 
         // MARK: - Common implementation
@@ -648,8 +677,7 @@ extension SwiftTestTool {
             }
         }
 
-        private func buildTestsIfNeeded(swiftTool: SwiftTool, library: BuildParameters.Testing.Library) throws -> [BuiltTestProduct] {
-            let buildParameters = try swiftTool.buildParametersForTest(enableCodeCoverage: false, shouldSkipBuilding: sharedOptions.shouldSkipBuilding, library: library)
+        private func buildTestsIfNeeded(swiftTool: SwiftTool, buildParameters: BuildParameters) throws -> [BuiltTestProduct] {
             return try Commands.buildTestsIfNeeded(swiftTool: swiftTool, buildParameters: buildParameters, testProduct: self.sharedOptions.testProduct)
         }
     }
