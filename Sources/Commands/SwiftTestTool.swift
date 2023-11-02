@@ -339,7 +339,7 @@ public struct SwiftTestTool: SwiftCommand {
     private func swiftTestingRun(_ swiftTool: SwiftTool) throws {
         let buildParameters = try swiftTool.buildParametersForTest(options: self.options, library: .swiftTesting)
         let testProducts = try buildTestsIfNeeded(swiftTool: swiftTool, library: .swiftTesting)
-        let additionalArguments = CollectionOfOne("--") + CommandLine.arguments
+        let additionalArguments = Array(CommandLine.arguments.dropFirst())
         try runTestProducts(testProducts, additionalArguments: additionalArguments, buildParameters: buildParameters, swiftTool: swiftTool, library: .swiftTesting)
     }
 
