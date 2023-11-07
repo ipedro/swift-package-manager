@@ -298,8 +298,6 @@ public struct SwiftTestTool: SwiftCommand {
             }
 
         case .regex, .specific, .skip:
-            var result = [String]()
-
             // If old specifier `-s` option was used, emit deprecation notice.
             if case .specific = options.testCaseSpecifier {
                 swiftTool.observabilityScope.emit(warning: "'--specifier' option is deprecated; use '--filter' instead")
@@ -321,16 +319,9 @@ public struct SwiftTestTool: SwiftCommand {
             // If there were no matches, emit a warning.
             if tests.isEmpty {
                 swiftTool.observabilityScope.emit(.noMatchingTests)
-                result.append("''")
-            } else {
-                result.append(tests.map(\.specifier).joined(separator: ","))
             }
 
-            #if os(macOS)
-            result.insert("-XCTest", at: 0)
-            #endif
-
-            return result
+            return TestRunner.xctestArguments(forTestSpecifiers: tests.map(\.specifier))
         }
     }
 
@@ -725,6 +716,22 @@ final class TestRunner {
     /// Which testing library to use with this test run.
     private let library: BuildParameters.Testing.Library
 
+    /// Get the arguments used on this platform to pass test specifiers to XCTest.
+    static func xctestArguments<S>(forTestSpecifiers testSpecifiers: S) -> [String] where S: Collection, S.Element == String {
+        let testSpecifier: String
+        if testSpecifiers.isEmpty {
+            testSpecifier = "''"
+        } else {
+            testSpecifier = testSpecifiers.joined(separator: ",")
+        }
+
+#if os(macOS)
+        return ["-XCTest", testSpecifier]
+#else
+        return [testSpecifier]
+#endif
+    }
+
     /// Creates an instance of TestRunner.
     ///
     /// - Parameters:
@@ -933,11 +940,7 @@ final class ParallelTestRunner {
             let thread = Thread {
                 // Dequeue a specifier and run it till we encounter nil.
                 while let test = self.pendingTests.dequeue() {
-#if os(macOS)
-                    let additionalArguments = ["-XCTest", test.specifier]
-#else
-                    let additionalArguments = [test.specifier]
-#endif
+                    let additionalArguments = TestRunner.xctestArguments(forTestSpecifiers: CollectionOfOne(test.specifier))
                     let testRunner = TestRunner(
                         bundlePaths: [test.productPath],
                         additionalArguments: additionalArguments,
