@@ -221,11 +221,7 @@ final class PluginDelegate: PluginInvocationDelegate {
                         }
 
                         // Configure a test runner.
-#if os(macOS)
-                        let additionalArguments = ["-XCTest", testSpecifier]
-#else
-                        let additionalArguments = [testSpecifier]
-#endif
+                        let additionalArguments = TestRunner.xctestArguments(forTestSpecifiers: CollectionOfOne(testSpecifier))
                         let testRunner = TestRunner(
                             bundlePaths: [testProduct.bundlePath],
                             additionalArguments: additionalArguments,
