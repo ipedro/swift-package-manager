@@ -108,7 +108,7 @@ enum TestingSupport {
         #if os(macOS)
         let data: String = try withTemporaryFile { tempFile in
             args = [try Self.xctestHelperPath(swiftTool: swiftTool).pathString, path.pathString, tempFile.path.pathString]
-            var env = try Self.constructTestEnvironment(
+            let env = try Self.constructTestEnvironment(
                 toolchain: try swiftTool.getTargetToolchain(),
                 buildParameters: swiftTool.buildParametersForTest(
                     enableCodeCoverage: enableCodeCoverage,
@@ -116,14 +116,9 @@ enum TestingSupport {
                     experimentalTestOutput: experimentalTestOutput,
                     library: .xctest
                 ),
-                sanitizers: sanitizers
+                sanitizers: sanitizers,
+                includeSDKPaths: true
             )
-
-            // Add the sdk platform path if we have it. If this is not present, we might always end up failing.
-            let sdkPlatformFrameworksPath = try SwiftSDK.sdkPlatformFrameworkPaths()
-            // appending since we prefer the user setting (if set) to the one we inject
-            env.appendPath("DYLD_FRAMEWORK_PATH", value: sdkPlatformFrameworksPath.fwk.pathString)
-            env.appendPath("DYLD_LIBRARY_PATH", value: sdkPlatformFrameworksPath.lib.pathString)
 
             try TSCBasic.Process.checkNonZeroExit(arguments: args, environment: env)
             // Read the temporary file's content.
@@ -150,7 +145,8 @@ enum TestingSupport {
     static func constructTestEnvironment(
         toolchain: UserToolchain,
         buildParameters: BuildParameters,
-        sanitizers: [Sanitizer]
+        sanitizers: [Sanitizer],
+        includeSDKPaths: Bool = false
     ) throws -> EnvironmentVariables {
         var env = EnvironmentVariables.process()
 
@@ -182,6 +178,14 @@ enum TestingSupport {
         #endif
         return env
         #else
+        if includeSDKPaths {
+            // Add the sdk platform path if we have it. If this is not present, we might always end up failing.
+            let sdkPlatformFrameworksPath = try SwiftSDK.sdkPlatformFrameworkPaths()
+            // appending since we prefer the user setting (if set) to the one we inject
+            env.appendPath("DYLD_FRAMEWORK_PATH", value: sdkPlatformFrameworksPath.fwk.pathString)
+            env.appendPath("DYLD_LIBRARY_PATH", value: sdkPlatformFrameworksPath.lib.pathString)
+        }
+
         // Fast path when no sanitizers are enabled.
         if sanitizers.isEmpty {
             return env
