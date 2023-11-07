@@ -382,7 +382,8 @@ public struct SwiftTestTool: SwiftCommand {
         let testEnv = try TestingSupport.constructTestEnvironment(
             toolchain: toolchain,
             buildParameters: buildParameters,
-            sanitizers: globalOptions.build.sanitizers
+            sanitizers: globalOptions.build.sanitizers,
+            includeSDKPaths: library == .swiftTesting
         )
 
         let runner = TestRunner(
