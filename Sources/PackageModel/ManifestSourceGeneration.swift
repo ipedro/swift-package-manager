@@ -29,7 +29,7 @@ extension Manifest {
     ///   - toolsVersionHeaderComment: Optional string to add to the `swift-tools-version` header (it will be ignored).
     ///   - additionalImportModuleNames: Names of any modules to import besides PackageDescription (would commonly contain custom product type definitions).
     ///   - customProductTypeSourceGenerator: Closure that will be called once for each custom product type in the manifest; it should return a SourceCodeFragment for the product type.
-    /// 
+    ///
     /// Returns: a string containing the full source code for the manifest.
     public func generateManifestFileContents(
         packageDirectory: AbsolutePath,
@@ -154,9 +154,9 @@ fileprivate extension SourceCodeFragment {
     /// Instantiates a SourceCodeFragment to represent a single package dependency.
     init(from dependency: PackageDependency, pathAnchor: AbsolutePath) {
         var params: [SourceCodeFragment] = []
-        if let explicitName = dependency.explicitNameForTargetDependencyResolutionOnly {
-            params.append(SourceCodeFragment(key: "name", string: explicitName))
-        }
+//        if let explicitName = dependency.explicitNameForTargetDependencyResolutionOnly {
+//            params.append(SourceCodeFragment(key: "name", string: explicitName))
+//        }
         switch dependency {
         case .fileSystem(let settings):
             let relPath = settings.path.relative(to: pathAnchor)
@@ -171,13 +171,13 @@ fileprivate extension SourceCodeFragment {
             }
             switch settings.requirement {
             case .exact(let version):
-                params.append(SourceCodeFragment(enum: "exact", string: "\(version)"))
+                params.append(SourceCodeFragment(key: "exact", string: "\(version)"))
             case .range(let range):
                 params.append(SourceCodeFragment("\"\(range.lowerBound)\"..<\"\(range.upperBound)\""))
             case .revision(let revision):
-                params.append(SourceCodeFragment(enum: "revision", string: revision))
+                params.append(SourceCodeFragment(key: "revision", string: revision))
             case .branch(let branch):
-                params.append(SourceCodeFragment(enum: "branch", string: branch))
+                params.append(SourceCodeFragment(key: "branch", string: branch))
             }
         case .registry(let settings):
             params.append(SourceCodeFragment(key: "identity", string: settings.identity.description))
@@ -208,7 +208,7 @@ fileprivate extension SourceCodeFragment {
             switch product.type {
             case .library(let type):
                 if type != .automatic {
-                    params.append(SourceCodeFragment(key: "type", enum: type.rawValue))
+                    params.insert(SourceCodeFragment(key: "type", enum: type.rawValue), at: 1)
                 }
 	            self.init(enum: "library", subnodes: params, multiline: true)
 	        case .executable:
