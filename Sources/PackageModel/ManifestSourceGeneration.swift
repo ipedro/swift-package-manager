@@ -134,19 +134,19 @@ fileprivate extension SourceCodeFragment {
 
         switch platform.platformName {
         case "macos":
-            self.init(enum: "macOS", literal: replaceVersionWithAccessors(platform.version))
+            self.init(enum: "macOS", literal: replaceWithSupportedPlatformAccessors(platform.version))
         case "maccatalyst":
-            self.init(enum: "macCatalyst", literal: replaceVersionWithAccessors(platform.version))
+            self.init(enum: "macCatalyst", literal: replaceWithSupportedPlatformAccessors(platform.version))
         case "ios":
-            self.init(enum: "iOS", literal: replaceVersionWithAccessors(platform.version))
+            self.init(enum: "iOS", literal: replaceWithSupportedPlatformAccessors(platform.version))
         case "tvos":
-            self.init(enum: "tvOS", literal: replaceVersionWithAccessors(platform.version))
+            self.init(enum: "tvOS", literal: replaceWithSupportedPlatformAccessors(platform.version))
         case "watchos":
-            self.init(enum: "watchOS", literal: replaceVersionWithAccessors(platform.version))
+            self.init(enum: "watchOS", literal: replaceWithSupportedPlatformAccessors(platform.version))
         case "visionos":
-            self.init(enum: "visionOS", literal: replaceVersionWithAccessors(platform.version))
+            self.init(enum: "visionOS", literal: replaceWithSupportedPlatformAccessors(platform.version))
         case "driverkit":
-            self.init(enum: "driverKit", literal: replaceVersionWithAccessors(platform.version))
+            self.init(enum: "driverKit", literal: replaceWithSupportedPlatformAccessors(platform.version))
         default:
             self.init(enum: "custom", subnodes: [ .init(string: platform.platformName), .init(key: "versionString", string: platform.version) ])
         }
@@ -697,7 +697,7 @@ extension String {
     }
 }
 
-fileprivate func replaceVersionWithAccessors(_ versionString: String) -> String {
+fileprivate func replaceWithSupportedPlatformAccessors(_ versionString: String) -> String {
     let components = versionString.split(separator: ".").map(String.init)
 
     // Check if the major version component is a valid number
