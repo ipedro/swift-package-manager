@@ -51,6 +51,7 @@ extension Manifest {
         let toolsVersionSuffix = "\(toolsVersionHeaderComment.map{ "; \($0)" } ?? "")"
         return """
             \(toolsVersion.specification(roundedTo: .minor))\(toolsVersionSuffix)
+
             import PackageDescription
             \(additionalImportModuleNames.map{ "import \($0)\n" }.joined())
             let package = \(packageExprFragment.generateSourceCode())
@@ -131,32 +132,31 @@ fileprivate extension SourceCodeFragment {
     /// Instantiates a SourceCodeFragment to represent a single platform.
     init(from platform: PlatformDescription) {
         // NOTE: This could be cleaned up to use the nicer version accessors.
+
         switch platform.platformName {
         case "macos":
-            self.init(enum: "macOS", string: platform.version)
+            self.init(enum: "macOS", literal: replaceVersionWithAccessors(platform.version))
         case "maccatalyst":
-            self.init(enum: "macCatalyst", string: platform.version)
+            self.init(enum: "macCatalyst", literal: replaceVersionWithAccessors(platform.version))
         case "ios":
-            self.init(enum: "iOS", string: platform.version)
+            self.init(enum: "iOS", literal: replaceVersionWithAccessors(platform.version))
         case "tvos":
-            self.init(enum: "tvOS", string: platform.version)
+            self.init(enum: "tvOS", literal: replaceVersionWithAccessors(platform.version))
         case "watchos":
-            self.init(enum: "watchOS", string: platform.version)
+            self.init(enum: "watchOS", literal: replaceVersionWithAccessors(platform.version))
         case "visionos":
-            self.init(enum: "visionOS", string: platform.version)
+            self.init(enum: "visionOS", literal: replaceVersionWithAccessors(platform.version))
         case "driverkit":
-            self.init(enum: "driverKit", string: platform.version)
+            self.init(enum: "driverKit", literal: replaceVersionWithAccessors(platform.version))
         default:
             self.init(enum: "custom", subnodes: [ .init(string: platform.platformName), .init(key: "versionString", string: platform.version) ])
         }
     }
-    
+
     /// Instantiates a SourceCodeFragment to represent a single package dependency.
     init(from dependency: PackageDependency, pathAnchor: AbsolutePath) {
         var params: [SourceCodeFragment] = []
-//        if let explicitName = dependency.explicitNameForTargetDependencyResolutionOnly {
-//            params.append(SourceCodeFragment(key: "name", string: explicitName))
-//        }
+
         switch dependency {
         case .fileSystem(let settings):
             let relPath = settings.path.relative(to: pathAnchor)
@@ -568,6 +568,13 @@ public extension SourceCodeFragment {
     }
 
     /// Initializes a SourceCodeFragment for an enum in a generated manifest.
+    init(key: String? = nil, enum: String, literal: String) {
+        let prefix = key.map{ $0 + ": " } ?? ""
+        let subnode = SourceCodeFragment(literal, delimiters: .none)
+        self.init(prefix + "." + `enum`, delimiters: .parentheses, multiline: false, subnodes: [subnode])
+    }
+
+    /// Initializes a SourceCodeFragment for an enum in a generated manifest.
     init(key: String? = nil, enum: String, subnodes: [SourceCodeFragment]? = nil, multiline: Bool = false) {
         let prefix = key.map{ $0 + ": " } ?? ""
         self.init(prefix + "." + `enum`, delimiters: .parentheses, multiline: multiline, subnodes: subnodes)
@@ -689,4 +696,20 @@ extension String {
             .replacingOccurrences(of: "\"", with: "\\\"")
             + "\""
     }
+}
+
+fileprivate func replaceVersionWithAccessors(_ versionString: String) -> String {
+    let components = versionString.split(separator: ".").map(String.init)
+
+    // Check if the major version component is a valid number
+    guard let majorVersion = components.first, Int(majorVersion) != nil else {
+        return versionString.quotedForPackageManifest
+    }
+
+    // Check for the specific pattern: major version only or major version with trailing zeros
+    if components.count == 1 || (components.dropFirst().allSatisfy { $0 == "0" }) {
+        return ".v\(majorVersion)"
+    }
+
+    return versionString.quotedForPackageManifest
 }
