@@ -134,19 +134,19 @@ fileprivate extension SourceCodeFragment {
 
         switch platform.platformName {
         case "macos":
-            self.init(enum: "macOS", literal: replaceWithSupportedPlatformAccessors(platform.version))
+            self.init(enum: "macOS", subnodes: [.init(replaceWithSupportedPlatformAccessors(platform.version))])
         case "maccatalyst":
-            self.init(enum: "macCatalyst", literal: replaceWithSupportedPlatformAccessors(platform.version))
+            self.init(enum: "macCatalyst", subnodes: [.init(replaceWithSupportedPlatformAccessors(platform.version))])
         case "ios":
-            self.init(enum: "iOS", literal: replaceWithSupportedPlatformAccessors(platform.version))
+            self.init(enum: "iOS", subnodes: [.init(replaceWithSupportedPlatformAccessors(platform.version))])
         case "tvos":
-            self.init(enum: "tvOS", literal: replaceWithSupportedPlatformAccessors(platform.version))
+            self.init(enum: "tvOS", subnodes: [.init(replaceWithSupportedPlatformAccessors(platform.version))])
         case "watchos":
-            self.init(enum: "watchOS", literal: replaceWithSupportedPlatformAccessors(platform.version))
+            self.init(enum: "watchOS", subnodes: [.init(replaceWithSupportedPlatformAccessors(platform.version))])
         case "visionos":
-            self.init(enum: "visionOS", literal: replaceWithSupportedPlatformAccessors(platform.version))
+            self.init(enum: "visionOS", subnodes: [.init(replaceWithSupportedPlatformAccessors(platform.version))])
         case "driverkit":
-            self.init(enum: "driverKit", literal: replaceWithSupportedPlatformAccessors(platform.version))
+            self.init(enum: "driverKit", subnodes: [.init(replaceWithSupportedPlatformAccessors(platform.version))])
         default:
             self.init(enum: "custom", subnodes: [ .init(string: platform.platformName), .init(key: "versionString", string: platform.version) ])
         }
@@ -564,13 +564,6 @@ public extension SourceCodeFragment {
         let prefix = key.map{ $0 + ": " } ?? ""
         let subnodes = strings.map{ SourceCodeFragment($0.quotedForPackageManifest) }
         self.init(prefix + "." + `enum`, delimiters: .parentheses, multiline: false, subnodes: subnodes)
-    }
-
-    /// Initializes a SourceCodeFragment for an enum in a generated manifest.
-    init(key: String? = nil, enum: String, literal: String) {
-        let prefix = key.map{ $0 + ": " } ?? ""
-        let subnode = SourceCodeFragment(literal, delimiters: .none)
-        self.init(prefix + "." + `enum`, delimiters: .parentheses, multiline: false, subnodes: [subnode])
     }
 
     /// Initializes a SourceCodeFragment for an enum in a generated manifest.
