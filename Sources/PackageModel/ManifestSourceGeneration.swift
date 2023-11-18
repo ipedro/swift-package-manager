@@ -171,6 +171,8 @@ fileprivate extension SourceCodeFragment {
             switch settings.requirement {
             case .exact(let version):
                 params.append(SourceCodeFragment(key: "exact", string: "\(version)"))
+            case .range(let range) where range == .upToNextMajor(from: range.lowerBound):
+                params.append(SourceCodeFragment(key: "from", string: String(range.lowerBound)))
             case .range(let range):
                 params.append(SourceCodeFragment("\"\(range.lowerBound)\"..<\"\(range.upperBound)\""))
             case .revision(let revision):
